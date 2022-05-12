@@ -2,33 +2,71 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 ## Getting Started
 
-First, run the development server:
+First, add script to pages/_app.js:
 
 ```bash
-npm run dev
-# or
-yarn dev
+import Script from "next/script";
+
+function MyApp({ Component, pageProps }: AppProps) {
+  return (
+    <>
+      <Script src="//cdn.evgnet.com/beacon/ingramconsumermktg/engage/scripts/evergage.min.js" />
+      <Component {...pageProps} />
+    </>
+  );
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+work action handlers and any window invocation on a separate js file, and add it as an event listener,
+dont forget to default export something.
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+```bash
+function onClick() {
+  window.SalesforceInteractions.sendEvent({
+    interaction: {
+        name: window.SalesforceInteractions.CatalogObjectInteractionName.ViewCatalogObject,
+        catalogObject: {
+            type: "Category",
+            id: () => window.location.search.split("=")[1],
+            attributes: {
+                url: () => window.location.href,
+                name: () => window.location.search.split("=")[1],
+            }
+        }
+    },
+    user: { identities: { emailAddress: "ignacio.sanchez@devsutd.com" } }
+  });
+}
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+const button = document.getElementById("button");
+button?.addEventListener('click', onClick);
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+export default function LogSalesforceActions () {
+  return null
+}
+```
+From your component import the action and wrap it on Next's dynamic function
 
-## Learn More
+```bash
+import type { NextPage } from "next";
+import dynamic from "next/dynamic";
+import styles from "../styles/Home.module.css";
 
-To learn more about Next.js, take a look at the following resources:
+const Home: NextPage = () => {
+  const Actions = dynamic(() => import("../window/Actions"), {
+    ssr: false,
+  });
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+  return (
+    <div className={styles.container}>
+      <main className={styles.main}>
+        {/** Render actions as another component an if needed the button for calling the action */}
+        <Actions />
+        <button id="button"> send Salesforce interaction </button>
+      </main>
+    </div>
+  );
+};
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+export default Home;
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+```
